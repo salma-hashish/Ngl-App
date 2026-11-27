@@ -1,0 +1,700 @@
+{
+  "info": {
+    "_postman_id": "c1f72a4e-d67b-4899-b148-3561a0de2490",
+    "name": "NGL App API",
+    "description": "Complete Postman collection for NGL App API including Health check, Authentication, 2-Step Verification, Google Login, Refresh Token, Password Reset, Anonymous Messaging, Identity Requests, and Conversations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "receiverId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "targetUserId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Server health check endpoint."
+      }
+    },
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('targetUserId', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registers a new user and dispatches a 6-digit OTP code to the provided email address."
+          }
+        },
+        {
+          "name": "Verify Account (OTP)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-account"]
+            },
+            "description": "Verifies a user account using the 6-digit OTP sent to their email."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.token) {",
+                  "        pm.collectionVariables.set('token', json.data.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authenticates user. If 2-step verification is disabled, returns JWT and sets token variable. If enabled, returns requires2Step: true and sends OTP."
+          }
+        },
+        {
+          "name": "Send OTP (Forgot Password)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "send-otp"]
+            },
+            "description": "Sends a 6-digit OTP code to the user's email address."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-idempotency-key",
+                "value": "reset-key-001"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            },
+            "description": "Resets the user password after verifying the OTP. Supports x-idempotency-key."
+          }
+        },
+        {
+          "name": "Verify To Login (2-Step Verification)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.token) {",
+                  "        pm.collectionVariables.set('token', json.data.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-to-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-to-login"]
+            },
+            "description": "Completes login when 2-step verification is enabled by validating the OTP."
+          }
+        },
+        {
+          "name": "Enable 2-Step Verification",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/enable-2-step-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "enable-2-step-verification"]
+            },
+            "description": "Enables 2-step verification requirement on future logins."
+          }
+        },
+        {
+          "name": "Login With Google",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"googleuser@example.com\",\n  \"name\": \"Google User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login-with-google",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login-with-google"]
+            },
+            "description": "Login/Register with Google authentication."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh-token"]
+            },
+            "description": "Refreshes user authentication token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Management",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Gets the currently logged-in user profile."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Updated\",\n  \"profilePic\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Updates profile details (e.g. name or profile picture)."
+          }
+        },
+        {
+          "name": "Enable 2-Step Verification",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/2step/enable",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "2step", "enable"]
+            },
+            "description": "Enables 2-step verification requirement on future logins."
+          }
+        },
+        {
+          "name": "Disable 2-Step Verification",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/2step/disable",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "2step", "disable"]
+            },
+            "description": "Disables 2-step verification requirement on future logins."
+          }
+        },
+        {
+          "name": "Ban User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Inappropriate behavior and platform abuse\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/ban/{{targetUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "ban", "{{targetUserId}}"]
+            },
+            "description": "Bans a specified user. Banned users cannot log in or perform authorized actions."
+          }
+        },
+        {
+          "name": "Unban User",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/unban/{{targetUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "unban", "{{targetUserId}}"]
+            },
+            "description": "Unbans a previously banned user."
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user"]
+            },
+            "description": "Retrieves list of active users."
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{targetUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "{{targetUserId}}"]
+            },
+            "description": "Retrieves details of a user by their user ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Anonymous Messages",
+      "item": [
+        {
+          "name": "Send Anonymous Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('messageId', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiver\": \"{{receiverId}}\",\n  \"content\": \"Hey there! Secret admirer here!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/message/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "send"]
+            },
+            "description": "Sends an anonymous message to another user. Sender identity remains hidden from receiver."
+          }
+        },
+        {
+          "name": "Get Incoming Messages (Receiver)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/incoming",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "incoming"]
+            },
+            "description": "Retrieves incoming messages for the logged-in user. Sender identity remains null unless request has been accepted."
+          }
+        },
+        {
+          "name": "Get Message By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "{{messageId}}"]
+            },
+            "description": "Retrieves a specific message by its ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Identity Requests",
+      "item": [
+        {
+          "name": "Request Sender Identity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data._id) {",
+                  "        pm.collectionVariables.set('requestId', json.data._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/{{messageId}}/request-identity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "{{messageId}}", "request-identity"]
+            },
+            "description": "The receiver requests to know who sent the anonymous message. Creates a request with status 'pending'."
+          }
+        },
+        {
+          "name": "Get Requests Received (Sender)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "requests"]
+            },
+            "description": "The sender views all requests received from other users asking to reveal their identity."
+          }
+        },
+        {
+          "name": "Get Requests Sent (Receiver)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/requests/sent",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "requests", "sent"]
+            },
+            "description": "The receiver views the status of identity requests they sent."
+          }
+        },
+        {
+          "name": "Accept Request (Reveal & Create Conversation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.conversation && json.data.conversation._id) {",
+                  "        pm.collectionVariables.set('conversationId', json.data.conversation._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/request/{{requestId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "request", "{{requestId}}", "accept"]
+            },
+            "description": "The sender accepts the identity request. Status changes to 'accepted', identity is revealed, and a conversation is created linked to the original message."
+          }
+        },
+        {
+          "name": "Reject Request (Keep Identity Hidden)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/request/{{requestId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "request", "{{requestId}}", "reject"]
+            },
+            "description": "The sender rejects the identity request. Status changes to 'rejected' and identity remains hidden."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Conversations & Messaging",
+      "item": [
+        {
+          "name": "Get User Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "conversations"]
+            },
+            "description": "Retrieves all conversations the logged-in user is a participant of."
+          }
+        },
+        {
+          "name": "Send Message in Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hey! Glad you accepted my identity request!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/message/conversation/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "conversation", "{{conversationId}}", "messages"]
+            },
+            "description": "Sends a message inside the conversation. Only the two users involved in the conversation are authorized."
+          }
+        },
+        {
+          "name": "Get Conversation Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/message/conversation/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "message", "conversation", "{{conversationId}}"]
+            },
+            "description": "Retrieves all messages in the conversation. Only the two users involved are authorized."
+          }
+        }
+      ]
+    }
+  ]
+}
