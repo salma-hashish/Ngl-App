@@ -3,13 +3,12 @@ import {AppError} from "../../pkg/error/error.js";
 
 function idempotency({ttl = 3600, strict = false}) {
     return async function (req, res, next) {
-        const idempotency = req.headers['idempotency-key'];
-        if (!idempotency) {
+        const idempotencyKey = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
+        if (!idempotencyKey) {
             if (strict) throw new AppError('missed idempotency key', 400);
             return next();
         }
-        console.log(idempotency);
-        let key = `${req.method}:${req.originalUrl}:${idempotency}`;
+        let key = `${req.method}:${req.originalUrl}:${idempotencyKey}`;
         const cached = await cacheProvider.get(key);
 
         if (cached) {

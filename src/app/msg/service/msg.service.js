@@ -115,6 +115,7 @@ export const msgService = {
             if (existingRequest.status === 'accepted') {
                 throw AppError.badRequest('This identity request has already been accepted');
             }
+            // Prevent re-requesting once the sender explicitly declined to protect sender privacy.
             if (existingRequest.status === 'rejected') {
                 throw AppError.badRequest('Identity request for this message was previously rejected');
             }
@@ -174,31 +175,29 @@ export const msgService = {
             };
         }
 
-        // If accepted:
-        request.status = 'accepted';
-
-        // Reveal sender identity on original message
-        const message = await msgRepository.findMessageById(request.message?._id || request.message);
-        if (message) {
-            message.isIdentityRevealed = true;
+        // If accepted: write conversation and message updates BEFORE marking request accepted
+        // so any intermediate failure keeps request.status === 'pending' and avoids out-of-sync state.
+        const messageId = request.message?._id || request.message;
+        const message = await msgRepository.findMessageById(messageId);
+        if (!message) {
+            throw AppError.notFound(USER_ERRORS.MESSAGE_NOT_FOUND);
         }
 
-        // 5) Create Conversation between sender and receiver, linked to original message
         const reqReceiverId = request.receiver?._id || request.receiver;
-        let conversation = await msgRepository.findConversationByOriginalMessage(message?._id || request.message);
+        let conversation = await msgRepository.findConversationByOriginalMessage(message._id);
 
         if (!conversation) {
             conversation = await msgRepository.createConversation({
-                originalMessage: message?._id || request.message,
+                originalMessage: message._id,
                 participants: [reqSenderId, reqReceiverId],
             });
         }
 
-        if (message) {
-            message.conversation = conversation._id;
-            await message.save();
-        }
+        message.isIdentityRevealed = true;
+        message.conversation = conversation._id;
+        await message.save();
 
+        request.status = 'accepted';
         request.conversation = conversation._id;
         await request.save();
 
@@ -240,7 +239,7 @@ export const msgService = {
     },
 
     // 5) Get Conversation Messages
-    async getConversation(userId, conversationId) {
+    async getConversation(userId, conversationId, { page, limit } = {}) {
         const conversation = await msgRepository.findConversationById(conversationId);
         if (!conversation) {
             throw AppError.notFound(USER_ERRORS.CONVERSATION_NOT_FOUND);
@@ -252,6 +251,27 @@ export const msgService = {
 
         if (!isParticipant) {
             throw AppError.forbidden('Authorization failed: Only the two users involved can access this conversation');
+        }
+
+        if (page !== undefined || limit !== undefined) {
+            const pageNum = Math.max(1, parseInt(page, 10) || 1);
+            const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+            const convObj = typeof conversation.toObject === 'function' ? conversation.toObject() : { ...conversation };
+            const allMessages = convObj.messages || [];
+            const totalMessages = allMessages.length;
+            const totalPages = Math.ceil(totalMessages / limitNum) || 1;
+            const start = (pageNum - 1) * limitNum;
+
+            return {
+                ...convObj,
+                messages: allMessages.slice(start, start + limitNum),
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    totalMessages,
+                    totalPages,
+                },
+            };
         }
 
         return conversation;

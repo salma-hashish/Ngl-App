@@ -207,7 +207,43 @@ export const authService = {
     },
 
     async sendOtp({ email, type = 'reset-password' }) {
-        return await this.forgotPassword({ email });
+        const user = await authRepository.findUserByEmail(email);
+        if (!user) {
+            throw AppError.notFound(AUTH_ERRORS.USER_NOT_FOUND);
+        }
+
+        if (type === 'verify-account' && user.isVerified) {
+            throw AppError.badRequest(AUTH_ERRORS.ACCOUNT_ALREADY_VERIFIED);
+        }
+
+        const otp = generateOtp();
+        const expiredAt = addMinutes(new Date(), 10);
+        await otpRepository.createOtp({
+            email: user.email,
+            value: otp,
+            type,
+            expiredAt,
+        });
+
+        const templateMap = {
+            'verify-account': getVerificationEmailTemplate,
+            '2step-login': getTwoStepEmailTemplate,
+            'reset-password': getResetPasswordEmailTemplate,
+        };
+        const getTemplate = templateMap[type] || getResetPasswordEmailTemplate;
+        const template = getTemplate(otp);
+
+        await sendEmail({
+            to: user.email,
+            subject: template.subject,
+            html: template.html,
+            text: template.text,
+        });
+
+        return {
+            message: 'OTP code sent to your email',
+            type,
+        };
     },
 
     async resetPassword({ email, otp, newPassword }) {
@@ -235,14 +271,12 @@ export const authService = {
         };
     },
 
-    async enableTwoStepVerification({ userId, email }) {
-        let user = null;
-        if (userId) {
-            user = await authRepository.findUserById(userId);
-        } else if (email) {
-            user = await authRepository.findUserByEmail(email);
+    async enableTwoStepVerification({ userId }) {
+        if (!userId) {
+            throw AppError.unauthorized('Authentication is required');
         }
 
+        const user = await authRepository.findUserById(userId);
         if (!user) {
             throw AppError.notFound(AUTH_ERRORS.USER_NOT_FOUND);
         }
@@ -271,7 +305,7 @@ export const authService = {
                 userName = payload.name;
                 userPic = payload.picture;
             } catch {
-                // Mock / dev fallback
+                throw AppError.unauthorized('Invalid Google ID token');
             }
         }
 

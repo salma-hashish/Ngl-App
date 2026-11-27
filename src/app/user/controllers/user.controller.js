@@ -78,7 +78,8 @@ export const userController = {
 
     async toggleTwoStep(req, res, next) {
         try {
-            const enabled = req.body.enabled !== undefined ? Boolean(req.body.enabled) : true;
+            const body = req.body || {};
+            const enabled = body.enabled !== undefined ? Boolean(body.enabled) : true;
             const result = await userService.toggleTwoStep(req.user._id, enabled);
             res.status(200).json({
                 success: true,
@@ -92,8 +93,9 @@ export const userController = {
 
     async banUser(req, res, next) {
         try {
-            const targetId = req.params.id || req.body.userId;
-            const { reason } = req.body;
+            const body = req.body || {};
+            const targetId = req.params.id || body.userId;
+            const { reason } = body;
             const result = await userService.banUser(req.user._id, targetId, reason);
             res.status(200).json({
                 success: true,
@@ -107,7 +109,8 @@ export const userController = {
 
     async unbanUser(req, res, next) {
         try {
-            const targetId = req.params.id || req.body.userId;
+            const body = req.body || {};
+            const targetId = req.params.id || body.userId;
             const result = await userService.unbanUser(targetId);
             res.status(200).json({
                 success: true,

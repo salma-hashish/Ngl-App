@@ -27,3 +27,7 @@ export function toSeconds(time, unit) {
             return time;
     }
 }
+
+export function addMinutes(date, minutes) {
+    return new Date(new Date(date).getTime() + minutes * 60 * 1000);
+}

@@ -11,9 +11,22 @@ const transporter = nodemailer.createTransport({
 
 
 
-export async function sendEmail(to, subject, html) {
+export async function sendEmail(toOrOptions, subject, html, text) {
+    const mailOptions = typeof toOrOptions === 'object' && toOrOptions !== null
+        ? {
+            from: `"NGL-App" <${env.nodemailer.user}>`,
+            to: toOrOptions.to,
+            subject: toOrOptions.subject,
+            html: toOrOptions.html,
+            text: toOrOptions.text,
+        }
+        : {
+            from: `"NGL-App" <${env.nodemailer.user}>`,
+            to: toOrOptions,
+            subject,
+            html,
+            text,
+        };
 
-    await transporter.sendMail({
-        from: `"NGL-App" <${env.nodemailer.user}>`, to, subject, html,
-    });
+    await transporter.sendMail(mailOptions);
 }

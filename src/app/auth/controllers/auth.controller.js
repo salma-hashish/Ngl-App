@@ -56,17 +56,28 @@ export async function sendOtp(req, res, next) {
         res.status(200).json({
             success: true,
             message: result.message,
+            data: { type: result.type },
         });
     } catch (error) {
         next(error);
     }
 }
 
-export const forgotPassword = sendOtp;
+export async function forgotPassword(req, res, next) {
+    try {
+        const result = await authService.forgotPassword(req.body);
+        res.status(200).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        next(error);
+    }
+}
 
 export async function resetPassword(req, res, next) {
     try {
-        const { email, otp, newPassword, password } = req.body;
+        const { email, otp, newPassword, password } = req.body || {};
         const result = await authService.resetPassword({
             email,
             otp,
@@ -105,7 +116,8 @@ export async function loginWithGoogle(req, res, next) {
 
 export async function refreshTokenFn(req, res, next) {
     try {
-        const token = req.body.token || req.body.refreshToken || req.cookies?.token;
+        const body = req.body || {};
+        const token = body.token || body.refreshToken || req.cookies?.token || req.cookies?.access_token;
         const result = await authService.refreshToken(token);
 
         if (result.token) {
@@ -130,9 +142,7 @@ export const refreshToken = refreshTokenFn;
 
 export async function enableTwoStepVerification(req, res, next) {
     try {
-        const userId = req.user?._id || req.body.userId;
-        const email = req.user?.email || req.body.email;
-        const result = await authService.enableTwoStepVerification({ userId, email });
+        const result = await authService.enableTwoStepVerification({ userId: req.user._id });
 
         res.status(200).json({
             success: true,

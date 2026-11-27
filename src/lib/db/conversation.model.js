@@ -1,30 +1,46 @@
-import { model , Schema} from 'mongoose';
+import { model, Schema } from 'mongoose';
 
-const MessageSchema = new Schema({
-    messageId: {
-        type: Schema.Types.ObjectId,
-        ref: "Message",
-        required: true
+const conversationMessageSchema = new Schema(
+    {
+        sender: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        content: {
+            type: String,
+            required: true,
+            trim: true,
+            minlength: 1,
+            maxlength: 1000,
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now,
+        },
     },
-    sender: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-    },
-}, { timestamps: true });
+    { timestamps: true }
+);
 
-const conversationSchema = new Schema({
-    sender: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+const conversationSchema = new Schema(
+    {
+        originalMessage: {
+            type: Schema.Types.ObjectId,
+            ref: 'Message',
+            required: true,
+            unique: true,
+        },
+        participants: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'User',
+                required: true,
+            },
+        ],
+        messages: [conversationMessageSchema],
     },
-    receiver: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    messageIds: [ MessageSchema ]
-});
+    { timestamps: true }
+);
 
-export const Conversation = model("Conversation", conversationSchema);
+export const Conversation = model('Conversation', conversationSchema);
+export default Conversation;

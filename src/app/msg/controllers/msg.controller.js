@@ -153,7 +153,8 @@ export const msgController = {
     // 5) Get Conversation Messages
     async getConversation(req, res, next) {
         try {
-            const conversation = await msgService.getConversation(req.user._id, req.params.id);
+            const { page, limit } = req.query || {};
+            const conversation = await msgService.getConversation(req.user._id, req.params.id, { page, limit });
             res.status(200).json({
                 success: true,
                 data: conversation,

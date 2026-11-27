@@ -1,7 +1,9 @@
 {
   "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch ."
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
   },
   "type": "module",
   "dependencies": {

@@ -1,5 +1,5 @@
 import crypto from "crypto";
 
 export function generateOtp() {
-    return crypto.randomInt(100000, 999999);
+    return String(crypto.randomInt(100000, 1000000));
 }
